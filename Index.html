@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>NFL Draft Pick'em 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080c15;--panel:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.09);
+  --gold:#f0b429;--orange:#f97316;--dim:#9ca3af;--success:#22c55e;
+  --text:#f1f5f9;--red:#ef4444;--indigo:#818cf8;--team:#e2e8f0;--sub:#94a3b8;
+}
+html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Barlow Condensed',Impact,sans-serif}
+.hidden{display:none!important}
+/* Loading */
+#loading{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+/* Header */
+.hdr{text-align:center;padding:20px 20px 10px;border-bottom:1px solid var(--border)}
+.hdr h1{font-size:clamp(20px,4.5vw,46px);font-weight:900;letter-spacing:5px;text-transform:uppercase;line-height:1;
+  background:linear-gradient(135deg,var(--gold),var(--orange));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr p{color:var(--dim);font-size:11px;letter-spacing:3px;text-transform:uppercase;margin-top:5px}
+/* Nav */
+.nav{display:flex;justify-content:center;gap:6px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.nav button{padding:7px 18px;border-radius:4px;border:none;cursor:pointer;font-family:inherit;font-weight:700;
+  font-size:12px;letter-spacing:2px;text-transform:uppercase;background:rgba(255,255,255,0.07);color:var(--dim);transition:all 0.15s}
+.nav button.active{background:linear-gradient(135deg,var(--gold),var(--orange));color:#000}
+/* Layout */
+.main-layout{display:flex}
+/* Sidebar */
+.sidebar{width:220px;flex-shrink:0;border-right:1px solid var(--border);padding:12px 10px;
+  position:sticky;top:0;height:100vh;overflow-y:auto;background:rgba(0,0,0,0.25)}
+.sidebar-title{font-size:11px;color:var(--gold);letter-spacing:2px;margin-bottom:6px;font-weight:700}
+.sidebar-hint{font-size:10px;color:var(--dim);margin-bottom:8px;line-height:1.5}
+.sidebar-hint.locked{color:var(--red)}
+/* Search tabs */
+.stabs{display:flex;gap:4px;margin-bottom:8px}
+.stab{flex:1;padding:4px 0;border-radius:4px;border:none;cursor:pointer;font-family:inherit;
+  font-weight:700;font-size:10px;letter-spacing:1px;text-transform:uppercase;
+  background:rgba(255,255,255,0.06);color:var(--dim);transition:all 0.15s}
+.stab.active{background:rgba(240,180,41,0.15);color:var(--gold)}
+/* Search box */
+.srch-wrap{position:relative;margin-bottom:8px}
+.srch-wrap input{padding:6px 8px 6px 28px;font-size:11px;background:rgba(255,255,255,0.07);
+  border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:var(--text);width:100%;
+  outline:none;font-family:inherit}
+.srch-wrap input::placeholder{color:var(--dim)}
+.srch-wrap::before{content:"🔍";position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:10px;pointer-events:none}
+/* Prospect chips */
+.prospect{display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;
+  cursor:grab;user-select:none;margin-bottom:3px;
+  background:rgba(255,255,255,0.04);border:1px solid var(--border);transition:opacity 0.15s}
+.prospect.used{opacity:0.3;background:transparent;border-color:transparent;cursor:default}
+.prospect.top32{border-left:2px solid var(--gold)}
+.pos-badge{font-size:10px;font-weight:800;padding:1px 4px;border-radius:3px;flex-shrink:0}
+.pro-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pro-sub{font-size:9px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Content area */
+.content{flex:1;padding:18px 20px;overflow-y:auto}
+.center-content{max-width:480px;margin:32px auto;padding:0 20px}
+/* Cards */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:14px}
+.card-gold{background:rgba(240,180,41,0.05);border:1px solid rgba(240,180,41,0.2);border-radius:10px;padding:20px;margin-bottom:14px}
+/* Inputs */
+input[type=text]{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);
+  border-radius:6px;color:var(--text);padding:9px 12px;font-size:14px;
+  outline:none;font-family:inherit;width:100%}
+input[type=text]::placeholder{color:var(--dim)}
+input[type=text]:focus{border-color:rgba(240,180,41,0.4)}
+/* Buttons */
+.btn{padding:9px 20px;border-radius:5px;border:none;cursor:pointer;font-family:inherit;
+  font-weight:700;font-size:13px;letter-spacing:2px;text-transform:uppercase;white-space:nowrap;color:#fff}
+.btn-or{background:var(--orange)}.btn-gr{background:var(--success)}.btn-dk{background:#1e293b;color:#888}
+.btn-in{background:#4f46e5}.btn-gy{background:#374151;color:#aaa}.btn-re{background:var(--red)}
+.btn:disabled{opacity:0.6;cursor:not-allowed}
+/* Pick rows */
+.pick-row{display:grid;grid-template-columns:36px 1fr 1.6fr;gap:10px;align-items:center;
+  padding:6px 8px;border-radius:7px;margin-bottom:4px;
+  border:1.5px solid var(--border);transition:all 0.1s;background:transparent}
+.pick-row.drop-target{border-style:dashed;border-color:var(--gold);background:rgba(240,180,41,0.07)}
+.pick-row.exact-r{background:rgba(34,197,94,0.06);border-color:rgba(34,197,94,0.2)}
+.pick-row.oneoff-r{background:rgba(240,180,41,0.06);border-color:rgba(240,180,41,0.2)}
+.pick-row.inrnd-r{background:rgba(99,102,241,0.06);border-color:rgba(99,102,241,0.2)}
+.pick-num{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1a243c,#243060);
+  border:1px solid rgba(240,180,41,0.3);display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:800;color:var(--gold);flex-shrink:0}
+.pick-num.filled-num{background:linear-gradient(135deg,#1a3c2a,#1e4d35);border-color:rgba(34,197,94,0.35);color:var(--success)}
+.team-cell{display:flex;align-items:center;gap:8px;min-width:0}
+.team-cell img{width:30px;height:30px;object-fit:contain;flex-shrink:0}
+.team-cell img.sm{width:22px;height:22px}
+.team-name-main{font-size:12px;font-weight:700;color:var(--team);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team-via{font-size:10px;color:var(--sub)}
+.filled-slot{display:flex;align-items:center;justify-content:space-between;
+  padding:5px 10px;border-radius:6px;border:1px solid var(--border);
+  background:rgba(255,255,255,0.06);font-size:13px;font-weight:600;cursor:pointer}
+.filled-slot.exact-s{background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.3)}
+.filled-slot.oneoff-s{background:rgba(240,180,41,0.10);border-color:rgba(240,180,41,0.3)}
+.filled-slot.inrnd-s{background:rgba(99,102,241,0.10);border-color:rgba(99,102,241,0.3)}
+.empty-slot{padding:7px 12px;border-radius:6px;font-size:12px;color:var(--dim);
+  border:1px dashed rgba(255,255,255,0.12);text-align:center}
+.empty-slot.drop-target{color:var(--gold);border-color:var(--gold);background:rgba(240,180,41,0.05)}
+.score-badge{font-size:11px;font-weight:800;padding:1px 7px;border-radius:10px}
+.sb-ex{background:rgba(34,197,94,0.2);color:var(--success)}
+.sb-1o{background:rgba(240,180,41,0.2);color:var(--gold)}
+.sb-ir{background:rgba(99,102,241,0.2);color:var(--indigo)}
+/* Lock banner */
+.lock-banner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;
+  gap:8px;padding:10px 16px;border-radius:8px;margin-bottom:14px}
+.lock-open{background:rgba(240,180,41,0.07);border:1px solid rgba(240,180,41,0.3)}
+.lock-locked{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3)}
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;
+  display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:#0f1623;border:1px solid var(--gold);border-radius:12px;
+  padding:24px;max-width:540px;width:100%;max-height:80vh;overflow-y:auto}
+/* Fetch panel */
+.fetch-panel{background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.3);
+  border-radius:10px;padding:18px;margin-bottom:20px}
+.fetch-log{margin-top:14px;padding:10px 14px;border-radius:7px}
+.fetch-ok{background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2)}
+.fetch-err{background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.25)}
+/* LB */
+.lb-row{display:flex;justify-content:space-between;align-items:center;
+  padding:14px 20px;border-radius:10px;margin-bottom:10px;
+  background:var(--panel);border:1px solid var(--border)}
+.lb-top{background:rgba(240,180,41,0.07);border-color:rgba(240,180,41,0.4)}
+/* Table */
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:4px 8px}
+th{color:var(--dim);border-bottom:1px solid var(--border);text-align:left}
+td{border-bottom:1px solid rgba(255,255,255,0.04)}
+/* Misc */
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.spin{display:inline-block;animation:spin 1s linear infinite}
+.setup-box{background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.3);
+  border-radius:10px;padding:20px;margin-bottom:16px}
+.setup-box code{background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:12px}
+.setup-box pre{background:rgba(0,0,0,0.4);padding:12px;border-radius:6px;font-size:11px;
+  font-family:monospace;overflow-x:auto;margin:8px 0;border:1px solid rgba(255,255,255,0.1)}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div style="font-size:48px">🏈</div>
+  <div style="color:var(--gold);font-size:20px;letter-spacing:4px">NFL DRAFT PICK'EM 2026</div>
+  <div style="color:var(--dim);font-size:13px;letter-spacing:2px">loading…</div>
+</div>
+
+<div id="app" class="hidden"></div>
+<div id="modal-root"></div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getFirestore,doc,setDoc,getDoc,onSnapshot,collection}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ┌─────────────────────────────────────────────────────────────────────┐
+// │  STEP 1: Replace this with YOUR Firebase config                     │
+// │  Get it from: console.firebase.google.com → Project Settings → SDK  │
+// └─────────────────────────────────────────────────────────────────────┘
+const firebaseConfig={
+  apiKey:"AIzaSyC6hM56vdceCUG8THy2I8tMv5VPC3kdt2Q",
+  authDomain:"nfl-draft-2026-2defe.firebaseapp.com",
+  projectId:"nfl-draft-2026-2defe",
+  storageBucket:"nfl-draft-2026-2defe.firebasestorage.app",
+  messagingSenderId:"620918419045",
+  appId:"1:620918419045:web:4ec2dc9b4490a2557d208c"
+};
+
+let db;
+try{
+  const app=initializeApp(firebaseConfig);
+  db=getFirestore(app);
+  window._db=db;
+  window._firestoreReady=true;
+  window._fsDoc=doc;
+  window._fsSet=setDoc;
+  window._fsGet=getDoc;
+  window._fsListen=onSnapshot;
+  window._fsCol=collection;
+}catch(e){
+  window._firestoreReady=false;
+  window._fbError=e.message;
+}
+window.dispatchEvent(new Event("firebase-ready"));
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════
+const PICKS=32,SCORE={exact:100,oneOff:50,inRound:10};
+const LOCK_TIME=new Date("2026-04-23T20:00:00-04:00");
+const isLocked=()=>new Date()>=LOCK_TIME;
+const LOGO=a=>`https://a.espncdn.com/i/teamlogos/nfl/500/${a}.png`;
+
+function countdown(){
+  const d=LOCK_TIME-new Date();
+  if(d<=0)return null;
+  const h=Math.floor(d/3600000),m=Math.floor((d%3600000)/60000),s=Math.floor((d%60000)/1000);
+  if(h>24){const dy=Math.floor(h/24);return`${dy}d ${h%24}h ${m}m`;}
+  if(h>0)return`${h}h ${m}m ${s}s`;
+  if(m>0)return`${m}m ${s}s`;
+  return`${s}s`;
+}
+
+const DRAFT_ORDER=[
+  {pick:1, team:"Las Vegas Raiders",      via:"",      ab:"lv" },
+  {pick:2, team:"New York Jets",           via:"",      ab:"nyj"},
+  {pick:3, team:"Arizona Cardinals",       via:"",      ab:"ari"},
+  {pick:4, team:"Tennessee Titans",        via:"",      ab:"ten"},
+  {pick:5, team:"New York Giants",         via:"",      ab:"nyg"},
+  {pick:6, team:"Cleveland Browns",        via:"",      ab:"cle"},
+  {pick:7, team:"Washington Commanders",   via:"",      ab:"wsh"},
+  {pick:8, team:"New Orleans Saints",      via:"",      ab:"no" },
+  {pick:9, team:"Kansas City Chiefs",      via:"",      ab:"kc" },
+  {pick:10,team:"New York Giants",         via:"CIN",   ab:"nyg"},
+  {pick:11,team:"Miami Dolphins",          via:"",      ab:"mia"},
+  {pick:12,team:"Dallas Cowboys",          via:"",      ab:"dal"},
+  {pick:13,team:"Los Angeles Rams",        via:"ATL",   ab:"lar"},
+  {pick:14,team:"Baltimore Ravens",        via:"",      ab:"bal"},
+  {pick:15,team:"Tampa Bay Buccaneers",    via:"",      ab:"tb" },
+  {pick:16,team:"New York Jets",           via:"IND",   ab:"nyj"},
+  {pick:17,team:"Detroit Lions",           via:"",      ab:"det"},
+  {pick:18,team:"Minnesota Vikings",       via:"",      ab:"min"},
+  {pick:19,team:"Carolina Panthers",       via:"",      ab:"car"},
+  {pick:20,team:"Dallas Cowboys",          via:"GB",    ab:"dal"},
+  {pick:21,team:"Pittsburgh Steelers",     via:"",      ab:"pit"},
+  {pick:22,team:"Los Angeles Chargers",    via:"",      ab:"lac"},
+  {pick:23,team:"Philadelphia Eagles",     via:"",      ab:"phi"},
+  {pick:24,team:"Cleveland Browns",        via:"JAX",   ab:"cle"},
+  {pick:25,team:"Chicago Bears",           via:"",      ab:"chi"},
+  {pick:26,team:"Buffalo Bills",           via:"",      ab:"buf"},
+  {pick:27,team:"San Francisco 49ers",     via:"",      ab:"sf" },
+  {pick:28,team:"Houston Texans",          via:"",      ab:"hou"},
+  {pick:29,team:"Kansas City Chiefs",      via:"LAR",   ab:"kc" },
+  {pick:30,team:"Miami Dolphins",          via:"DEN",   ab:"mia"},
+  {pick:31,team:"New England Patriots",    via:"",      ab:"ne" },
+  {pick:32,team:"Seattle Seahawks",        via:"",      ab:"sea"},
+];
+
+// ── FULL PROSPECT DATABASE (150 players, ranked, searchable) ───────────
+const ALL_PROSPECTS=[
+  // TOP 32 — highlighted
+  {r:1,  n:"Fernando Mendoza",   p:"QB",   s:"Indiana",       top:true},
+  {r:2,  n:"Jeremiyah Love",     p:"RB",   s:"Notre Dame",    top:true},
+  {r:3,  n:"Sonny Styles",       p:"LB",   s:"Ohio State",    top:true},
+  {r:4,  n:"David Bailey",       p:"Edge", s:"Texas Tech",    top:true},
+  {r:5,  n:"Arvell Reese",       p:"Edge", s:"Ohio State",    top:true},
+  {r:6,  n:"Rueben Bain Jr.",    p:"Edge", s:"Miami (FL)",    top:true},
+  {r:7,  n:"Malachi Lawrence",   p:"Edge", s:"UCF",           top:true},
+  {r:8,  n:"Caleb Downs",        p:"S",    s:"Ohio State",    top:true},
+  {r:9,  n:"Mansoor Delane",     p:"CB",   s:"LSU",           top:true},
+  {r:10, n:"Carnell Tate",       p:"WR",   s:"Ohio State",    top:true},
+  {r:11, n:"Ty Simpson",         p:"QB",   s:"Alabama",       top:true},
+  {r:12, n:"Jack Mauigoa",       p:"OT",   s:"Washington",    top:true},
+  {r:13, n:"Rylie Mills",        p:"DT",   s:"Notre Dame",    top:true},
+  {r:14, n:"KC Concepcion",      p:"WR",   s:"Texas A&M",     top:true},
+  {r:15, n:"Will Ioane",         p:"OG",   s:"Penn State",    top:true},
+  {r:16, n:"Christen Miller",    p:"DT",   s:"Georgia",       top:true},
+  {r:17, n:"Jordyn Tyson",       p:"WR",   s:"Arizona State", top:true},
+  {r:18, n:"Jermod McCoy",       p:"CB",   s:"Tennessee",     top:true},
+  {r:19, n:"Harold Perkins Jr.", p:"LB",   s:"LSU",           top:true},
+  {r:20, n:"Colton Hood",        p:"CB",   s:"Tennessee",     top:true},
+  {r:21, n:"Denzel Boston",      p:"WR",   s:"Washington",    top:true},
+  {r:22, n:"Treydan Stukes",     p:"S",    s:"Arizona",       top:true},
+  {r:23, n:"Keldric Faulk",      p:"Edge", s:"Auburn",        top:true},
+  {r:24, n:"Makai Lemon",        p:"WR",   s:"USC",           top:true},
+  {r:25, n:"A'Mauri Washington", p:"DT",   s:"Oregon",        top:true},
+  {r:26, n:"Lorenzo Styles Jr.", p:"LB",   s:"Ohio State",    top:true},
+  {r:27, n:"Zachariah Branch",   p:"WR",   s:"Georgia",       top:true},
+  {r:28, n:"Mike Washington Jr.",p:"RB",   s:"Arkansas",      top:true},
+  {r:29, n:"A.J. Haulcy",        p:"CB",   s:"Temple",        top:true},
+  {r:30, n:"Kaytron Allen",      p:"RB",   s:"Penn State",    top:true},
+  {r:31, n:"Emmett Johnson",     p:"RB",   s:"Nebraska",      top:true},
+  {r:32, n:"Chris Brazzell II",  p:"WR",   s:"Tennessee",     top:true},
+  // ROUND 1 BUBBLE / LATE RISERS
+  {r:33, n:"Dillon Gabriel",     p:"QB",   s:"Oregon",        top:false},
+  {r:34, n:"Shedeur Sanders",    p:"QB",   s:"Colorado",      top:false},
+  {r:35, n:"Cam Ward",           p:"QB",   s:"Miami (FL)",    top:false},
+  {r:36, n:"Jadarian Price",     p:"RB",   s:"Notre Dame",    top:false},
+  {r:37, n:"Nicholas Singleton", p:"RB",   s:"Penn State",    top:false},
+  {r:38, n:"Jonah Coleman",      p:"RB",   s:"Washington",    top:false},
+  {r:39, n:"Demond Claiborne",   p:"RB",   s:"Wake Forest",   top:false},
+  {r:40, n:"Seth McGowan",       p:"RB",   s:"Kentucky",      top:false},
+  {r:41, n:"Kaelon Black",       p:"RB",   s:"Indiana",       top:false},
+  {r:42, n:"Woody Marks",        p:"RB",   s:"USC",           top:false},
+  {r:43, n:"Tahj Brooks",        p:"RB",   s:"Texas Tech",    top:false},
+  {r:44, n:"Brashard Smith",     p:"RB",   s:"SMU",           top:false},
+  {r:45, n:"Jalen Royals",       p:"WR",   s:"Utah State",    top:false},
+  {r:46, n:"Jaylin Noel",        p:"WR",   s:"Iowa State",    top:false},
+  {r:47, n:"Elic Ayomanor",      p:"WR",   s:"Stanford",      top:false},
+  {r:48, n:"Matthew Golden",     p:"WR",   s:"Texas",         top:false},
+  {r:49, n:"Isaiah Bond",        p:"WR",   s:"Texas",         top:false},
+  {r:50, n:"Kyle Williams",      p:"WR",   s:"Washington State",top:false},
+  {r:51, n:"Emeka Egbuka",       p:"WR",   s:"Ohio State",    top:false},
+  {r:52, n:"Luther Burden III",  p:"WR",   s:"Missouri",      top:false},
+  {r:53, n:"Jayden Higgins",     p:"WR",   s:"Iowa State",    top:false},
+  {r:54, n:"Tre Harris",         p:"WR",   s:"Ole Miss",      top:false},
+  {r:55, n:"Harold Fannin Jr.",  p:"TE",   s:"Bowling Green", top:false},
+  {r:56, n:"Tyler Warren",       p:"TE",   s:"Penn State",    top:false},
+  {r:57, n:"Colston Loveland",   p:"TE",   s:"Michigan",      top:false},
+  {r:58, n:"Gunnar Helm",        p:"TE",   s:"Texas",         top:false},
+  {r:59, n:"Oronde Gadsden II",  p:"TE",   s:"Syracuse",      top:false},
+  {r:60, n:"Will Campbell",      p:"OT",   s:"LSU",           top:false},
+  {r:61, n:"Kelvin Banks Jr.",   p:"OT",   s:"Texas",         top:false},
+  {r:62, n:"Josh Simmons",       p:"OT",   s:"Ohio State",    top:false},
+  {r:63, n:"Wyatt Milum",        p:"OT",   s:"West Virginia", top:false},
+  {r:64, n:"Tate Ratledge",      p:"OG",   s:"Georgia",       top:false},
+  {r:65, n:"Jonah Savaiinaea",   p:"OG",   s:"Oregon",        top:false},
+  {r:66, n:"Marcus Mbow",        p:"OG",   s:"Purdue",        top:false},
+  {r:67, n:"Grey Zabel",         p:"C",    s:"North Dakota St",top:false},
+  {r:68, n:"Drew Kendall",       p:"C",    s:"Boston College", top:false},
+  {r:69, n:"Seth McLaughlin",    p:"C",    s:"Ohio State",    top:false},
+  {r:70, n:"Mason Graham",       p:"DT",   s:"Michigan",      top:false},
+  {r:71, n:"Walter Nolen",       p:"DT",   s:"Ole Miss",      top:false},
+  {r:72, n:"Derrick Harmon",     p:"DT",   s:"Oregon",        top:false},
+  {r:73, n:"Kenneth Grant",      p:"DT",   s:"Michigan",      top:false},
+  {r:74, n:"Alfred Collins",     p:"DT",   s:"Texas",         top:false},
+  {r:75, n:"James Pearce Jr.",   p:"Edge", s:"Tennessee",     top:false},
+  {r:76, n:"Mykel Williams",     p:"Edge", s:"Georgia",       top:false},
+  {r:77, n:"Jack Sawyer",        p:"Edge", s:"Ohio State",    top:false},
+  {r:78, n:"Donovan Ezeiruaku",  p:"Edge", s:"Boston College",top:false},
+  {r:79, n:"Nic Scourton",       p:"Edge", s:"Purdue",        top:false},
+  {r:80, n:"Kyle Kennard",       p:"Edge", s:"South Carolina",top:false},
+  {r:81, n:"Princely Umanmielen",p:"Edge", s:"Ole Miss",      top:false},
+  {r:82, n:"Landon Jackson",     p:"Edge", s:"Arkansas",      top:false},
+  {r:83, n:"Jalon Walker",       p:"LB",   s:"Georgia",       top:false},
+  {r:84, n:"Jihaad Campbell",    p:"LB",   s:"Alabama",       top:false},
+  {r:85, n:"Dasan McCullough",   p:"LB",   s:"Indiana",       top:false},
+  {r:86, n:"Shemar Stewart",     p:"DT",   s:"Texas A&M",     top:false},
+  {r:87, n:"Tyleik Williams",    p:"DT",   s:"Ohio State",    top:false},
+  {r:88, n:"Darius Alexander",   p:"DT",   s:"Toledo",        top:false},
+  {r:89, n:"Nick Emmanwori",     p:"S",    s:"South Carolina",top:false},
+  {r:90, n:"Malaki Starks",      p:"S",    s:"Georgia",       top:false},
+  {r:91, n:"Andrew Mukuba",      p:"S",    s:"Texas",         top:false},
+  {r:92, n:"Lathan Ransom",      p:"S",    s:"Ohio State",    top:false},
+  {r:93, n:"Will Johnson",       p:"CB",   s:"Michigan",      top:false},
+  {r:94, n:"Jahdae Barron",      p:"CB",   s:"Texas",         top:false},
+  {r:95, n:"Benjamin Morrison",  p:"CB",   s:"Notre Dame",    top:false},
+  {r:96, n:"Azareye'h Thomas",   p:"CB",   s:"Florida State", top:false},
+  {r:97, n:"Trey Amos",          p:"CB",   s:"Ole Miss",      top:false},
+  {r:98, n:"Shavon Revel Jr.",   p:"CB",   s:"East Carolina", top:false},
+  {r:99, n:"Darien Porter",      p:"CB",   s:"Iowa State",    top:false},
+  {r:100,n:"Jabbar Muhammad",    p:"CB",   s:"Oregon",        top:false},
+  // ADDITIONAL PROSPECTS 101-150
+  {r:101,n:"Jaxson Dart",        p:"QB",   s:"Ole Miss",      top:false},
+  {r:102,n:"Quinn Ewers",        p:"QB",   s:"Texas",         top:false},
+  {r:103,n:"Carson Beck",        p:"QB",   s:"Miami (FL)",    top:false},
+  {r:104,n:"Garrett Nussmeier",  p:"QB",   s:"LSU",           top:false},
+  {r:105,n:"Cade Klubnik",       p:"QB",   s:"Clemson",       top:false},
+  {r:106,n:"Luke Altmyer",       p:"QB",   s:"Illinois",      top:false},
+  {r:107,n:"Taylen Green",       p:"QB",   s:"Arkansas",      top:false},
+  {r:108,n:"TreVeyon Henderson", p:"RB",   s:"Ohio State",    top:false},
+  {r:109,n:"Omarion Hampton",    p:"RB",   s:"North Carolina",top:false},
+  {r:110,n:"Kaleb Johnson",      p:"RB",   s:"Iowa",          top:false},
+  {r:111,n:"RJ Harvey",          p:"RB",   s:"UCF",           top:false},
+  {r:112,n:"Ashton Jeanty",      p:"RB",   s:"Boise State",   top:false},
+  {r:113,n:"Jaylen Wright",      p:"RB",   s:"Tennessee",     top:false},
+  {r:114,n:"Josh Conerly Jr.",   p:"OT",   s:"Oregon",        top:false},
+  {r:115,n:"Aireontae Ersery",   p:"OT",   s:"Minnesota",     top:false},
+  {r:116,n:"Armand Membou",      p:"OT",   s:"Missouri",      top:false},
+  {r:117,n:"David Sanders Jr.",  p:"OT",   s:"Arkansas",      top:false},
+  {r:118,n:"Christian Jones",    p:"OT",   s:"Texas",         top:false},
+  {r:119,n:"Solomon Byrd",       p:"Edge", s:"USC",           top:false},
+  {r:120,n:"Oluwafemi Oladejo",  p:"Edge", s:"UCLA",          top:false},
+  {r:121,n:"Fadil Diggs",        p:"Edge", s:"Texas A&M",     top:false},
+  {r:122,n:"Carter Nelson",      p:"Edge", s:"Missouri",      top:false},
+  {r:123,n:"Mike Green",         p:"Edge", s:"Marshall",      top:false},
+  {r:124,n:"Abdul Carter",       p:"Edge", s:"Penn State",    top:false},
+  {r:125,n:"William Green",      p:"DT",   s:"Louisville",    top:false},
+  {r:126,n:"Nazir Stackhouse",   p:"DT",   s:"Georgia",       top:false},
+  {r:127,n:"Bear Alexander",     p:"DT",   s:"USC",           top:false},
+  {r:128,n:"Deone Walker",       p:"DT",   s:"Kentucky",      top:false},
+  {r:129,n:"Tyler Booker",       p:"OG",   s:"Alabama",       top:false},
+  {r:130,n:"Jared Wilson",       p:"C",    s:"Georgia",       top:false},
+  {r:131,n:"Jake Majors",        p:"C",    s:"Texas",         top:false},
+  {r:132,n:"Cam Skattebo",       p:"RB",   s:"Arizona State", top:false},
+  {r:133,n:"Tetairoa McMillan",  p:"WR",   s:"Arizona",       top:false},
+  {r:134,n:"Pat Bryant",         p:"WR",   s:"Illinois",      top:false},
+  {r:135,n:"Dont'e Thornton Jr.",p:"WR",   s:"Tennessee",     top:false},
+  {r:136,n:"Savion Williams",    p:"WR",   s:"TCU",           top:false},
+  {r:137,n:"Jayden Higgins",     p:"WR",   s:"Iowa State",    top:false},
+  {r:138,n:"Chimere Dike",       p:"WR",   s:"Wisconsin",     top:false},
+  {r:139,n:"Micah Parsons",      p:"LB",   s:"(Trade/Vet)",   top:false},
+  {r:140,n:"Danny Striggow",     p:"LB",   s:"Michigan State",top:false},
+  {r:141,n:"Barrett Carter",     p:"LB",   s:"Clemson",       top:false},
+  {r:142,n:"Jacob Parrish",      p:"CB",   s:"Kansas State",  top:false},
+  {r:143,n:"Denzel Burke",       p:"CB",   s:"Ohio State",    top:false},
+  {r:144,n:"Tacario Davis",      p:"CB",   s:"Arizona",       top:false},
+  {r:145,n:"Marcus Allen",       p:"CB",   s:"Penn State",    top:false},
+  {r:146,n:"Jalen Royals",       p:"WR",   s:"Utah State",    top:false},
+  {r:147,n:"Max Melton",         p:"CB",   s:"Rutgers",       top:false},
+  {r:148,n:"Xavier Watts",       p:"S",    s:"Notre Dame",    top:false},
+  {r:149,n:"Jaylen Key",         p:"S",    s:"Alabama",       top:false},
+  {r:150,n:"Tamon Lynum",        p:"S",    s:"Wisconsin",     top:false},
+];
+
+const POS_COLORS={QB:"#ef4444",RB:"#22c55e",WR:"#3b82f6",TE:"#a855f7",
+  OT:"#f59e0b",OG:"#f97316",C:"#d97706",Edge:"#14b8a6",DT:"#94a3b8",LB:"#64748b",CB:"#2563eb",S:"#7c3aed"};
+
+// ═══════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════
+const S={
+  view:"home",user:null,allPicks:{},actual:{},myPicks:{},adminPicks:{},
+  nameInput:"",search:"",sidebarTab:"top32",posFilter:"ALL",
+  dragName:null,locked:isLocked(),cd:countdown(),
+  saved:false,fetching:false,fetchLog:null,fetchPreview:null,showConfirm:false,
+  fbOk:false,
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+// FIREBASE
+// ═══════════════════════════════════════════════════════════════════════
+let _db,_doc,_set,_listen,_col;
+
+function fbInit(){
+  _db=window._db;_doc=window._fsDoc;_set=window._fsSet;
+  _listen=window._fsListen;_col=window._fsCol;
+}
+async function fbSavePicks(user,picks){
+  try{await _set(_doc(_db,"picks",user),{picks});}catch(e){console.error(e);}
+}
+async function fbSaveActual(actual){
+  try{await _set(_doc(_db,"actual","round1"),{actual});}catch(e){console.error(e);}
+}
+function fbListenActual(){
+  if(unsubA)unsubA();
+  unsubA=_listen(_doc(_db,"actual","round1"),snap=>{
+    if(snap.exists()){S.actual=snap.data().actual||{};S.adminPicks={...S.actual};render();}
+  });
+}
+function fbListenPicks(){
+  if(unsubP)unsubP();
+  unsubP=_listen(_col(_db,"picks"),snap=>{
+    const all={};snap.forEach(d=>{all[d.id]=d.data().picks||{};});
+    S.allPicks=all;
+    if(S.user&&S.user!=="__admin__")S.myPicks=all[S.user]||S.myPicks;
+    render();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SCORING
+// ═══════════════════════════════════════════════════════════════════════
+function calcScore(picks,actual){
+  if(!actual||!Object.keys(actual).length)return{total:0,bd:[]};
+  let total=0;const bd=[];
+  const vals=Object.values(actual).filter(Boolean);
+  for(let i=1;i<=PICKS;i++){
+    const p=picks[i],t=actual[i];
+    if(!p?.trim())continue;
+    const pl=p.trim().toLowerCase();
+    if(t&&pl===t.trim().toLowerCase()){total+=SCORE.exact;bd.push({pick:i,pts:SCORE.exact,lbl:"ex"});}
+    else if(t&&(actual[i-1]?.trim().toLowerCase()===pl||actual[i+1]?.trim().toLowerCase()===pl)){total+=SCORE.oneOff;bd.push({pick:i,pts:SCORE.oneOff,lbl:"1o"});}
+    else if(vals.some(v=>v.trim().toLowerCase()===pl)){total+=SCORE.inRound;bd.push({pick:i,pts:SCORE.inRound,lbl:"ir"});}
+  }
+  return{total,bd};
+}
+function getScores(){
+  return Object.entries(S.allPicks)
+    .map(([n,p])=>({name:n,...calcScore(p,S.actual)}))
+    .sort((a,b)=>b.total-a.total);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// LIVE FETCH
+// ═══════════════════════════════════════════════════════════════════════
+async function fetchLive(){
+  const filled=Object.values(S.adminPicks).filter(Boolean).length;
+  const prompt=`Search the web RIGHT NOW for live 2026 NFL Draft Round 1 results happening tonight April 23 2026 in Pittsburgh. Find every pick officially announced so far. Draft order: 1-LV Raiders,2-NY Jets,3-ARI,4-TEN Titans,5-NY Giants,6-CLE Browns,7-WAS,8-NO Saints,9-KC Chiefs,10-NY Giants(CIN),11-MIA,12-DAL,13-LAR(ATL),14-BAL,15-TB,16-NYJ(IND),17-DET,18-MIN,19-CAR,20-DAL(GB),21-PIT,22-LAC,23-PHI,24-CLE(JAX),25-CHI,26-BUF,27-SF,28-HOU,29-KC(LAR),30-MIA(DEN),31-NE,32-SEA. Already have ${filled} picks. Return ONLY raw JSON: {"1":"Player Name"} no markdown.`;
+  const res=await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,
+      tools:[{type:"web_search_20250305",name:"web_search"}],
+      messages:[{role:"user",content:prompt}]})
+  });
+  if(!res.ok)throw new Error(`API ${res.status}`);
+  const data=await res.json();
+  const text=data.content.filter(b=>b.type==="text").map(b=>b.text).join("");
+  const m=text.match(/\{[\s\S]*?\}/);
+  if(!m)throw new Error("No JSON in response");
+  const parsed=JSON.parse(m[0]);
+  const result={};
+  for(const[k,v]of Object.entries(parsed)){
+    const n=parseInt(k);
+    if(n>=1&&n<=32&&typeof v==="string"&&v.trim())result[n]=v.trim();
+  }
+  if(!Object.keys(result).length)throw new Error("No valid picks found");
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// DOM HELPERS
+// ═══════════════════════════════════════════════════════════════════════
+function el(tag,attrs={},children=[]){
+  const e=document.createElement(tag);
+  for(const[k,v]of Object.entries(attrs)){
+    if(k==="class")e.className=v;
+    else if(k.startsWith("on"))e.addEventListener(k.slice(2).toLowerCase(),v);
+    else if(k==="style"&&typeof v==="object")Object.assign(e.style,v);
+    else e.setAttribute(k,v);
+  }
+  for(const c of[children].flat().filter(Boolean)){
+    e.appendChild(typeof c==="string"?document.createTextNode(c):c);
+  }
+  return e;
+}
+function btn(txt,cls,cb,dis=false){
+  const b=el("button",{class:`btn ${cls}`,onClick:cb});
+  b.textContent=txt;if(dis)b.disabled=true;return b;
+}
+function imgEl(src,sm=false){
+  const i=document.createElement("img");
+  i.src=src;i.alt="";if(sm)i.className="sm";
+  i.onerror=()=>i.remove();return i;
+}
+function teamCell({team,via,ab},sm=false){
+  const cell=el("div",{class:"team-cell"});
+  cell.appendChild(imgEl(LOGO(ab),sm));
+  const t=el("div");
+  t.appendChild(el("div",{class:"team-name-main",style:sm?{fontSize:"11px"}:{}},[team]));
+  if(via)t.appendChild(el("div",{class:"team-via"},[`via ${via}`]));
+  cell.appendChild(t);return cell;
+}
+function posBadge(pos){
+  const b=el("div",{class:"pos-badge"},[pos]);
+  const c=POS_COLORS[pos]||"#888";
+  b.style.background=c+"33";b.style.color=c;return b;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SIDEBAR PROSPECTS
+// ═══════════════════════════════════════════════════════════════════════
+function getFilteredProspects(){
+  const q=S.search.toLowerCase();
+  const picks=S.view==="admin"?S.adminPicks:S.myPicks;
+  let list=ALL_PROSPECTS;
+  // Tab filter
+  if(S.sidebarTab==="top32")list=list.filter(p=>p.top);
+  else if(S.sidebarTab==="pos"&&S.posFilter!=="ALL")list=list.filter(p=>p.p===S.posFilter);
+  // Text search
+  if(q)list=list.filter(p=>
+    p.n.toLowerCase().includes(q)||p.p.toLowerCase().includes(q)||
+    p.s.toLowerCase().includes(q)||String(p.r).includes(q)
+  );
+  return{list,picks};
+}
+
+function renderSidebar(readOnly=false){
+  const sb=el("div",{class:"sidebar"});
+  sb.appendChild(el("div",{class:"sidebar-title"},["📋 PROSPECTS"]));
+  sb.appendChild(el("div",{class:`sidebar-hint${readOnly?" locked":""}`},
+    [readOnly?"🔒 Picks locked":"Drag to slot · ✕ to clear"]));
+
+  // Tabs
+  const tabs=el("div",{class:"stabs"});
+  [["top32","Top 32"],["all","All"],["pos","By Pos"]].forEach(([v,label])=>{
+    const t=el("button",{class:`stab${S.sidebarTab===v?" active":""}`,onClick:()=>{S.sidebarTab=v;if(v==="all"||v==="top32")S.posFilter="ALL";rerenderSidebar(sb,readOnly);}});
+    t.textContent=label;tabs.appendChild(t);
+  });
+  sb.appendChild(tabs);
+
+  // Pos filter (only in pos tab)
+  if(S.sidebarTab==="pos"){
+    const pf=el("div",{style:{display:"flex",flexWrap:"wrap",gap:"3px",marginBottom:"8px"}});
+    ["ALL","QB","RB","WR","TE","OT","OG","C","Edge","DT","LB","CB","S"].forEach(pos=>{
+      const pb=el("button",{
+        class:`stab${S.posFilter===pos?" active":""}`,
+        onClick:()=>{S.posFilter=pos;rerenderSidebar(sb,readOnly);}
+      });
+      pb.textContent=pos;pb.style.flex="0 0 auto";pb.style.padding="3px 6px";
+      pf.appendChild(pb);
+    });
+    sb.appendChild(pf);
+  }
+
+  // Search box
+  const srchWrap=el("div",{class:"srch-wrap"});
+  const srchIn=el("input",{type:"text",placeholder:"Search name, pos, school, rank…"});
+  srchIn.value=S.search;
+  srchIn.addEventListener("input",e=>{S.search=e.target.value;rerenderSidebarList(listEl,readOnly);});
+  srchWrap.appendChild(srchIn);
+  sb.appendChild(srchWrap);
+
+  // List
+  const listEl=el("div",{id:"sb-list"});
+  renderSidebarList(listEl,readOnly);
+  sb.appendChild(listEl);
+
+  return sb;
+}
+
+function rerenderSidebar(sb,readOnly){
+  const old=document.querySelector(".sidebar");
+  if(old){old.replaceWith(renderSidebar(readOnly));}
+}
+function rerenderSidebarList(listEl,readOnly){
+  listEl.innerHTML="";renderSidebarList(listEl,readOnly);
+}
+
+function renderSidebarList(container,readOnly){
+  const{list,picks}=getFilteredProspects();
+  if(!list.length){
+    container.appendChild(el("div",{style:{color:"var(--dim)",fontSize:"11px",padding:"8px 4px",textAlign:"center"}},
+      ["No prospects found"]));
+    return;
+  }
+  list.forEach(p=>{
+    const used=Object.values(picks).some(v=>v?.trim().toLowerCase()===p.n.toLowerCase());
+    const row=el("div",{class:`prospect${used?" used":""}${p.top?" top32":""}`});
+    // Rank
+    row.appendChild(el("span",{style:{fontSize:"10px",color:"var(--dim)",width:"20px",textAlign:"right",flexShrink:"0"}},[`#${p.r}`]));
+    row.appendChild(posBadge(p.p));
+    const info=el("div",{style:{flex:"1",minWidth:"0"}});
+    info.appendChild(el("div",{class:"pro-name"},[p.n]));
+    info.appendChild(el("div",{class:"pro-sub"},[p.s]));
+    row.appendChild(info);
+    if(used)row.appendChild(el("span",{style:{fontSize:"9px",color:"var(--success)",flexShrink:"0"}},["✓"]));
+    if(p.top&&S.sidebarTab!=="top32")row.appendChild(el("span",{style:{fontSize:"9px",color:"var(--gold)",flexShrink:"0",marginLeft:"2px"}},["★"]));
+
+    if(!readOnly){
+      row.setAttribute("draggable","true");
+      row.addEventListener("dragstart",()=>{S.dragName=p.n;});
+      row.addEventListener("dragend",()=>{S.dragName=null;});
+      // Click to add to first empty slot
+      row.addEventListener("dblclick",()=>{
+        if(used)return;
+        const picks2=S.view==="admin"?S.adminPicks:S.myPicks;
+        for(let i=1;i<=32;i++){if(!picks2[i]||!picks2[i].trim()){picks2[i]=p.n;render();break;}}
+      });
+      row.title="Drag to slot · Double-click to fill next empty slot";
+    }
+    container.appendChild(row);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PICK ROWS
+// ═══════════════════════════════════════════════════════════════════════
+function renderPickRow(draftSlot,picks,actual,readOnly,onDrop,onClear){
+  const{pick,team,via,ab}=draftSlot;
+  const score=Object.keys(actual).length?calcScore(picks,actual):null;
+  const se=score?score.bd.find(b=>b.pick===pick):null;
+  const filled=(picks[pick]||"").trim();
+
+  const cls=`pick-row${se?se.lbl==="ex"?" exact-r":se.lbl==="1o"?" oneoff-r":" inrnd-r":""}`;
+  const row=el("div",{class:cls});
+
+  row.addEventListener("dragover",e=>{if(!readOnly){e.preventDefault();row.classList.add("drop-target");}});
+  row.addEventListener("dragleave",()=>row.classList.remove("drop-target"));
+  row.addEventListener("drop",()=>{
+    row.classList.remove("drop-target");
+    if(!readOnly&&S.dragName){onDrop(pick,S.dragName);S.dragName=null;}
+  });
+
+  // Number bubble
+  row.appendChild(el("div",{class:`pick-num${filled?" filled-num":""}`},[String(pick)]));
+  // Team
+  row.appendChild(teamCell({team,via,ab}));
+  // Slot
+  if(filled){
+    const sCls=`filled-slot${se?se.lbl==="ex"?" exact-s":se.lbl==="1o"?" oneoff-s":" inrnd-s":""}`;
+    const slot=el("div",{class:sCls});
+    slot.appendChild(el("span",{},[filled]));
+    const right=el("div",{style:{display:"flex",alignItems:"center",gap:"6px"}});
+    if(se){
+      const badgeCls=`score-badge ${se.lbl==="ex"?"sb-ex":se.lbl==="1o"?"sb-1o":"sb-ir"}`;
+      right.appendChild(el("span",{class:badgeCls},[`+${se.pts}`]));
+    }
+    const hasActual=Object.keys(actual).length>0;
+    if(hasActual&&actual[pick]&&actual[pick].trim().toLowerCase()!==filled.toLowerCase()){
+      right.appendChild(el("span",{style:{fontSize:"10px",color:"var(--dim)"}},[`→ ${actual[pick]}`]));
+    }
+    right.appendChild(el("span",{style:{fontSize:"11px",color:"var(--dim)"}},[readOnly?"🔒":"✕"]));
+    slot.appendChild(right);
+    if(!readOnly)slot.addEventListener("click",()=>onClear(pick));
+    row.appendChild(slot);
+  }else{
+    const emp=el("div",{class:"empty-slot"},[readOnly?"— no pick —":"drag or type below"]);
+    row.appendChild(emp);
+  }
+  return row;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// LOCK BANNER
+// ═══════════════════════════════════════════════════════════════════════
+function renderLockBanner(){
+  const cls=`lock-banner ${S.locked?"lock-locked":"lock-open"}`;
+  const b=el("div",{class:cls});
+  const left=el("div",{style:{display:"flex",alignItems:"center",gap:"10px"}});
+  left.appendChild(el("span",{style:{fontSize:"20px"}},[S.locked?"🔒":"⏳"]));
+  const txt=el("div");
+  txt.appendChild(el("div",{style:{fontSize:"13px",fontWeight:"700",color:S.locked?"var(--red)":"var(--gold)"}},
+    [S.locked?"PICKS LOCKED — Draft Has Started":"Picks lock when the draft starts"]));
+  txt.appendChild(el("div",{style:{fontSize:"12px",color:"var(--dim)"}},
+    [S.locked?"Picks are final. Good luck!":`Thu Apr 23 · 8:00 PM ET · ${S.cd} remaining`]));
+  left.appendChild(txt);b.appendChild(left);
+  if(!S.locked)b.appendChild(el("div",{style:{fontSize:"14px",fontWeight:"700",color:"var(--gold)",letterSpacing:"2px"}},[S.cd]));
+  return b;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// HOME VIEW
+// ═══════════════════════════════════════════════════════════════════════
+function renderHome(){
+  const root=el("div");
+  root.appendChild(el("div",{class:"hdr"},[
+    el("h1",{},["🏈 NFL Draft Pick'em 2026"]),
+    el("p",{},["Pittsburgh · April 23 · Round 1 · 32 Picks"])
+  ]));
+  const wrap=el("div",{class:"center-content"});
+
+  // Firebase not configured warning
+  if(!S.fbOk){
+    const warn=el("div",{class:"setup-box"});
+    warn.appendChild(el("div",{style:{fontSize:"15px",fontWeight:"800",color:"var(--indigo)",marginBottom:"10px"}},["⚙️ FIREBASE SETUP REQUIRED"]));
+    warn.appendChild(el("div",{style:{fontSize:"12px",color:"var(--dim)",lineHeight:"1.7"}},
+      ["To enable multi-user sync, follow these steps:"]));
+    const steps=el("ol",{style:{fontSize:"12px",color:"var(--dim)",lineHeight:"2",paddingLeft:"20px",marginTop:"8px"}});
+    [
+      `Go to <strong style="color:var(--team)">console.firebase.google.com</strong> → Create project`,
+      `Enable <strong style="color:var(--team)">Firestore Database</strong> → Start in test mode`,
+      `Project Settings → Your apps → Add Web App → Copy config`,
+      `Open this HTML file in a text editor, find the <code>firebaseConfig</code> block near the top, paste your config`,
+      `Save & re-upload to Netlify`
+    ].forEach((s,i)=>{
+      const li=el("li");li.innerHTML=`${s}`;steps.appendChild(li);
+    });
+    warn.appendChild(steps);
+    wrap.appendChild(warn);
+  }
+
+  // Lock card
+  const lockCard=el("div",{style:{background:S.locked?"rgba(239,68,68,0.08)":"rgba(240,180,41,0.06)",border:`1px solid ${S.locked?"rgba(239,68,68,0.3)":"rgba(240,180,41,0.25)"}`,borderRadius:"10px",padding:"14px 18px",marginBottom:"16px",display:"flex",alignItems:"center",gap:"12px"}});
+  lockCard.appendChild(el("span",{style:{fontSize:"28px"}},[S.locked?"🔒":"⏳"]));
+  const lct=el("div",{style:{flex:"1"}});
+  lct.appendChild(el("div",{style:{fontSize:"14px",fontWeight:"800",color:S.locked?"var(--red)":"var(--gold)"}},[S.locked?"PICKS ARE LOCKED":"PICKS OPEN"]));
+  lct.appendChild(el("div",{style:{fontSize:"12px",color:"var(--dim)"}},[S.locked?"The draft has started. No more changes.":`Locks Thu Apr 23 at 8 PM ET · ${S.cd} remaining`]));
+  lockCard.appendChild(lct);
+  if(!S.locked)lockCard.appendChild(el("div",{style:{fontSize:"18px",fontWeight:"900",color:"var(--gold)"}},[S.cd]));
+  wrap.appendChild(lockCard);
+
+  // Enter room
+  const card=el("div",{class:"card"});
+  card.appendChild(el("h2",{style:{marginBottom:"6px",fontSize:"20px",letterSpacing:"2px"}},["Enter the Draft Room"]));
+  card.appendChild(el("p",{style:{color:"var(--dim)",fontSize:"13px",marginBottom:"18px",marginTop:"6px"}},
+    [S.locked?"The draft is live! Enter your name to see picks & scores.":"Enter your name, lock in your picks. Picks hidden until draft starts!"]));
+  const ni=el("input",{type:"text",placeholder:"Your name…"});
+  ni.value=S.nameInput;
+  ni.addEventListener("input",e=>S.nameInput=e.target.value);
+  ni.addEventListener("keydown",e=>e.key==="Enter"&&enterApp());
+  card.appendChild(ni);
+  const br=el("div",{style:{marginTop:"12px"}});
+  br.appendChild(btn(S.locked?"View My Picks & Scores →":"Enter Draft Room →","btn-or",enterApp));
+  card.appendChild(br);wrap.appendChild(card);
+
+  // Scoring
+  const sc=el("div",{class:"card-gold"});
+  sc.appendChild(el("div",{style:{fontSize:"11px",color:"var(--gold)",letterSpacing:"2px",marginBottom:"12px"}},["SCORING"]));
+  const scr=el("div",{style:{display:"flex",gap:"12px"}});
+  [["✓ Exact","+100","var(--success)"],["~ 1-Off","+50","var(--gold)"],["◎ In Round","+10","var(--indigo)"]].forEach(([l,p,c])=>{
+    const col=el("div",{style:{flex:"1",textAlign:"center"}});
+    col.appendChild(el("div",{style:{fontSize:"26px",fontWeight:"900",color:c}},[p]));
+    col.appendChild(el("div",{style:{fontSize:"11px",color:"var(--dim)",marginTop:"2px"}},[l]));
+    scr.appendChild(col);
+  });
+  sc.appendChild(scr);wrap.appendChild(sc);
+
+  // Leaderboard / participant count
+  const scores=getScores();const hasActual=Object.keys(S.actual).length>0;
+  const pa=Object.values(S.actual).filter(Boolean).length;
+  if(S.locked&&scores.length){
+    const lb=el("div",{class:"card"});
+    const lbhdr=el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}});
+    lbhdr.appendChild(el("div",{style:{fontSize:"11px",color:"var(--gold)",letterSpacing:"2px"}},["LEADERBOARD"]));
+    if(pa>0)lbhdr.appendChild(el("div",{style:{fontSize:"11px",color:"var(--dim)"}},[`📡 ${pa}/32 picks in`]));
+    lb.appendChild(lbhdr);
+    scores.forEach((sc2,i)=>{
+      const row=el("div",{class:`lb-row${i===0&&hasActual?" lb-top":""}`});
+      row.appendChild(el("span",{style:{fontWeight:"800",fontSize:"16px"}},[`${i===0&&hasActual?"🏆 ":`#${i+1} `}${sc2.name}`]));
+      row.appendChild(el("span",{style:{fontSize:"22px",fontWeight:"900",color:"var(--gold)"}},[hasActual?`${sc2.total} pts`:"—"]));
+      lb.appendChild(row);
+    });
+    wrap.appendChild(lb);
+  }else if(!S.locked&&scores.length){
+    const pc=el("div",{class:"card",style:{textAlign:"center"}});
+    pc.appendChild(el("div",{style:{fontSize:"32px",marginBottom:"8px"}},["👥"]));
+    pc.appendChild(el("div",{style:{fontSize:"20px",fontWeight:"900",color:"var(--gold)"}},[String(scores.length)]));
+    pc.appendChild(el("div",{style:{fontSize:"13px",color:"var(--dim)"}},[`player${scores.length!==1?"s":""} have submitted picks`]));
+    pc.appendChild(el("div",{style:{fontSize:"11px",color:"var(--dim)",marginTop:"6px"}},["Picks hidden until draft starts"]));
+    wrap.appendChild(pc);
+  }
+
+  const ar=el("div",{style:{textAlign:"center",marginTop:"4px"}});
+  ar.appendChild(btn("⚙ Admin / Live Results","btn-dk",()=>{S.user="__admin__";S.view="admin";render();}));
+  wrap.appendChild(ar);
+  root.appendChild(wrap);return root;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PICKS VIEW
+// ═══════════════════════════════════════════════════════════════════════
+function renderPicks(){
+  const root=el("div");
+  root.appendChild(el("div",{class:"hdr"},[el("h1",{},["🏈 NFL Draft Pick'em 2026"]),el("p",{},[`${S.user}'s Picks · Pittsburgh · April 23`])]));
+  root.appendChild(renderNav("picks"));
+  const layout=el("div",{class:"main-layout"});
+  layout.appendChild(renderSidebar(S.locked));
+  const content=el("div",{class:"content"});
+  content.appendChild(renderLockBanner());
+
+  const myScore=calcScore(S.myPicks,S.actual);
+  const hasActual=Object.keys(S.actual).length>0;
+  const pa=Object.values(S.actual).filter(Boolean).length;
+
+  if(hasActual){
+    const sc=el("div",{style:{background:"rgba(240,180,41,0.07)",border:"1px solid rgba(240,180,41,0.3)",borderRadius:"10px",padding:"14px 20px",marginBottom:"16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"12px"}});
+    const left=el("div");
+    left.appendChild(el("div",{style:{fontSize:"11px",color:"var(--gold)",letterSpacing:"2px"}},["YOUR SCORE"]));
+    left.appendChild(el("div",{style:{fontSize:"48px",fontWeight:"900",color:"var(--gold)",lineHeight:"1.1"}},[String(myScore.total)]));
+    left.appendChild(el("div",{style:{fontSize:"12px",color:"var(--dim)"}},
+      [`${myScore.bd.filter(b=>b.lbl==="ex").length} exact · ${myScore.bd.filter(b=>b.lbl==="1o").length} one-off · ${myScore.bd.filter(b=>b.lbl==="ir").length} in round`]));
+    sc.appendChild(left);
+    sc.appendChild(el("div",{style:{fontSize:"12px",color:"var(--dim)"}},[`📡 ${pa}/32 picks in`]));
+    content.appendChild(sc);
+  }
+
+  if(!S.locked){
+    const top=el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px",flexWrap:"wrap",gap:"8px"}});
+    const pc=Object.values(S.myPicks).filter(Boolean).length;
+    top.appendChild(el("span",{style:{fontSize:"12px",color:"var(--dim)"}},[`${pc}/32 picks · double-click sidebar to fill · drag to slot`]));
+    const sb=btn(S.saved?"✓ Saved!":"Save Picks",S.saved?"btn-gr":"btn-or",saveMyPicks);
+    top.appendChild(sb);content.appendChild(top);
+  }
+
+  DRAFT_ORDER.forEach(slot=>{
+    content.appendChild(renderPickRow(slot,S.myPicks,S.actual,S.locked,
+      (pick,name)=>{S.myPicks[pick]=name;render();},
+      (pick)=>{delete S.myPicks[pick];render();}
+    ));
+  });
+
+  // Manual text entry
+  if(!S.locked){
+    const manual=el("div",{class:"card",style:{marginTop:"20px"}});
+    manual.appendChild(el("div",{style:{fontSize:"11px",color:"var(--dim)",letterSpacing:"2px",marginBottom:"12px"}},["MANUAL TEXT ENTRY"]));
+    DRAFT_ORDER.forEach(({pick,team,via,ab})=>{
+      const r=el("div",{style:{display:"flex",gap:"8px",alignItems:"center",marginBottom:"6px"}});
+      r.appendChild(el("span",{style:{width:"24px",textAlign:"right",fontSize:"12px",color:"var(--gold)",fontWeight:"800",flexShrink:"0"}},[String(pick)]));
+      const tc=el("div",{style:{width:"155px",flexShrink:"0"}});tc.appendChild(teamCell({team,via,ab},true));r.appendChild(tc);
+      const inp2=el("input",{type:"text",placeholder:"Player name…",style:{padding:"4px 8px",fontSize:"12px"}});
+      inp2.value=S.myPicks[pick]||"";
+      inp2.addEventListener("input",e=>{S.myPicks[pick]=e.target.value;});
+      inp2.addEventListener("blur",()=>render());
+      r.appendChild(inp2);manual.appendChild(r);
+    });
+    content.appendChild(manual);
+    const sr=el("div",{style:{textAlign:"center",marginTop:"16px"}});
+    sr.appendChild(btn(S.saved?"✓ Picks Saved!":"Save My Picks",S.saved?"btn-gr":"btn-or",saveMyPicks));
+    content.appendChild(sr);
+  }
+  if(S.locked&&!hasActual)content.appendChild(el("div",{style:{textAlign:"center",padding:"24px",color:"var(--dim)",fontSize:"14px"}},["Waiting for admin to enter draft results…"]));
+
+  layout.appendChild(content);root.appendChild(layout);return root;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// LEADERBOARD VIEW
+// ═══════════════════════════════════════════════════════════════════════
+function renderBoard(){
+  const root=el("div");
+  root.appendChild(el("div",{class:"hdr"},[el("h1",{},["🏈 NFL Draft Pick'em 2026"]),el("p",{},["2026 NFL Draft · Round 1 Leaderboard"])]));
+  root.appendChild(renderNav("board"));
+  const wrap=el("div",{style:{maxWidth:"900px",margin:"0 auto",padding:"20px 16px"}});
+  const hasActual=Object.keys(S.actual).length>0;
+  const pa=Object.values(S.actual).filter(Boolean).length;
+  const scores=getScores();
+
+  if(!S.locked){
+    const b=el("div",{style:{background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:"10px",padding:"12px 18px",marginBottom:"16px",display:"flex",alignItems:"center",gap:"10px"}});
+    b.appendChild(el("span",{style:{fontSize:"20px"}},["🙈"]));
+    const bt=el("div");
+    bt.appendChild(el("div",{style:{fontSize:"13px",fontWeight:"700",color:"var(--red)"}},["Scores hidden until draft starts"]));
+    bt.appendChild(el("div",{style:{fontSize:"12px",color:"var(--dim)"}},[`Visible at 8 PM ET Thu Apr 23 · ${S.cd} remaining`]));
+    b.appendChild(bt);wrap.appendChild(b);
+  }
+  if(S.locked&&hasActual){
+    const b=el("div",{style:{background:"rgba(99,102,241,0.07)",border:"1px solid rgba(99,102,241,0.25)",borderRadius:"10px",padding:"10px 18px",marginBottom:"16px",display:"flex",alignItems:"center",gap:"10px"}});
+    b.appendChild(el("span",{style:{fontSize:"18px"}},["📡"]));
+    const bt=el("div");
+    bt.appendChild(el("div",{style:{fontSize:"13px",fontWeight:"700",color:"var(--indigo)"}},["LIVE DRAFT"]));
+    bt.appendChild(el("div",{style:{fontSize:"12px",color:"var(--dim)"}},[`${pa}/32 picks · scores update as admin refreshes`]));
+    b.appendChild(bt);wrap.appendChild(b);
+  }
+  if(S.locked&&!hasActual)wrap.appendChild(el("div",{class:"card",style:{textAlign:"center",color:"var(--dim)"}},["📋  Scores appear once admin enters results."]));
+
+  if(S.locked){
+    scores.forEach((sc2,i)=>{
+      const row=el("div",{class:`lb-row${i===0&&hasActual?" lb-top":""}`});
+      const left=el("div");
+      const nm=el("div",{style:{fontSize:"22px",fontWeight:"900"}});
+      nm.textContent=`${i===0&&hasActual?"🏆 ":`#${i+1} `}${sc2.name}`;
+      if(sc2.name===S.user){const you=el("span",{style:{fontSize:"11px",color:"var(--orange)",marginLeft:"8px"}},["YOU"]);nm.appendChild(you);}
+      left.appendChild(nm);
+      if(hasActual&&sc2.bd.length){
+        left.appendChild(el("div",{style:{fontSize:"12px",color:"var(--dim)",marginTop:"3px"}},
+          [`${sc2.bd.filter(b=>b.lbl==="ex").length} exact · ${sc2.bd.filter(b=>b.lbl==="1o").length} one-off · ${sc2.bd.filter(b=>b.lbl==="ir").length} in-round`]));
+      }
+      row.appendChild(left);
+      const pts=el("div",{style:{fontSize:"36px",fontWeight:"900",color:"var(--gold)"}});
+      pts.textContent=hasActual?`${sc2.total} pts`:"Picks locked ✓";
+      if(hasActual)pts.style.fontSize="36px"; else pts.style.fontSize="16px";
+      row.appendChild(pts);wrap.appendChild(row);
+    });
+
+    if(hasActual&&scores.length){
+      const tcard=el("div",{class:"card",style:{marginTop:"20px",overflowX:"auto"}});
+      tcard.appendChild(el("div",{style:{fontSize:"11px",color:"var(--orange)",letterSpacing:"2px",marginBottom:"12px"}},["PICK-BY-PICK"]));
+      const tbl=el("table");
+      const thead=el("tr");
+      [["#",""],["Team",""],["Actual",""],...scores.map(s=>[s.name,s.name===S.user?"color:var(--orange)":""])].forEach(([h2,style])=>{
+        const th=el("th");th.textContent=h2;if(style)th.style.cssText=style;thead.appendChild(th);
+      });
+      tbl.appendChild(el("thead",{},[thead]));
+      const tbody=el("tbody");
+      DRAFT_ORDER.forEach(({pick,team,via,ab})=>{
+        const tr=el("tr");
+        const pickTd=el("td");pickTd.textContent=String(pick);pickTd.style.color="var(--gold)";pickTd.style.fontWeight="700";tr.appendChild(pickTd);
+        const teamTd=el("td");teamTd.appendChild(teamCell({team,via,ab},true));tr.appendChild(teamTd);
+        const actTd=el("td");actTd.textContent=S.actual[pick]||"—";tr.appendChild(actTd);
+        scores.forEach(sc2=>{
+          const hit=sc2.bd.find(b=>b.pick===pick);
+          const td=el("td",{style:{textAlign:"center"}});
+          if(hit){td.textContent=`+${hit.pts}`;td.style.color=hit.lbl==="ex"?"var(--success)":hit.lbl==="1o"?"var(--gold)":"var(--indigo)";}
+          else{td.textContent=S.allPicks[sc2.name]?.[pick]||"—";td.style.color="#2d3748";}
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      tbl.appendChild(tbody);tcard.appendChild(tbl);wrap.appendChild(tcard);
+    }
+  }
+  root.appendChild(wrap);return root;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ADMIN VIEW
+// ═══════════════════════════════════════════════════════════════════════
+function renderAdmin(){
+  const root=el("div");
+  root.appendChild(el("div",{class:"hdr"},[el("h1",{},["🏈 NFL Draft Pick'em 2026"]),el("p",{},["Admin — Live Draft Tracker"])]));
+  const layout=el("div",{class:"main-layout"});
+  layout.appendChild(renderSidebar(false));
+  const content=el("div",{class:"content"});
+
+  // Fetch panel
+  const fp=el("div",{class:"fetch-panel"});
+  const fptop=el("div",{style:{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:"12px",flexWrap:"wrap"}});
+  const fpleft=el("div",{style:{flex:"1"}});
+  fpleft.appendChild(el("div",{style:{fontSize:"14px",fontWeight:"800",color:"var(--indigo)",letterSpacing:"1px",marginBottom:"4px"}},["📡 LIVE PICK FETCHER"]));
+  fpleft.appendChild(el("div",{style:{fontSize:"12px",color:"var(--dim)",lineHeight:"1.6"}},["Searches the web for latest 2026 NFL Draft picks. Hit after each announcement. Preview before saving."]));
+  const pa=Object.values(S.adminPicks).filter(Boolean).length;
+  if(pa)fpleft.appendChild(el("div",{style:{fontSize:"12px",color:"var(--dim)",marginTop:"6px"}},[`Tracking: `,el("span",{style:{color:"var(--gold)",fontWeight:"700"}},[`${pa}/32 picks`])]));
+  fptop.appendChild(fpleft);
+  const fetchBtnEl=el("button",{class:`btn ${S.fetching?"btn-gy":"btn-in"}`,style:{display:"flex",alignItems:"center",gap:"8px",padding:"11px 22px",fontSize:"14px"},onClick:doFetch,disabled:S.fetching});
+  fetchBtnEl.innerHTML=S.fetching?`<span class="spin">⟳</span> Searching…`:"🔄 Fetch Latest Picks";
+  fptop.appendChild(fetchBtnEl);fp.appendChild(fptop);
+
+  if(S.fetchLog){
+    const fl=el("div",{class:`fetch-log ${S.fetchLog.error?"fetch-err":"fetch-ok"}`});
+    if(S.fetchLog.error){
+      fl.appendChild(el("div",{style:{fontSize:"12px",color:"var(--red)",fontWeight:"700"}},[`⚠ Fetch failed — ${S.fetchLog.ts}`]));
+      fl.appendChild(el("div",{style:{fontSize:"11px",color:"var(--dim)",marginTop:"2px"}},[S.fetchLog.error]));
+    }else if(S.fetchLog.noChanges){
+      fl.appendChild(el("div",{style:{fontSize:"12px",color:"var(--dim)"}},[`✓ No new picks at ${S.fetchLog.ts}`]));
+    }else{
+      fl.appendChild(el("div",{style:{fontSize:"12px",color:"var(--success)",fontWeight:"700"}},[`✓ Applied ${S.fetchLog.ts} — ${S.fetchLog.newCount} new pick${S.fetchLog.newCount!==1?"s":""}`]));
+      (S.fetchLog.slots||[]).slice(0,5).forEach(s=>{fl.appendChild(el("div",{style:{fontSize:"11px",color:"var(--dim)",marginTop:"2px"}},[`#${s.pick} → ${s.name}`]));});
+    }
+    fp.appendChild(fl);
+  }
+  content.appendChild(fp);
+
+  // Manual grid
+  content.appendChild(el("div",{style:{fontSize:"11px",color:"var(--dim)",letterSpacing:"2px",marginBottom:"10px"}},["MANUAL OVERRIDE — drag from sidebar or type"]));
+  DRAFT_ORDER.forEach(slot=>{
+    content.appendChild(renderPickRow(slot,S.adminPicks,S.actual,false,
+      (pick,name)=>{S.adminPicks[pick]=name;render();},
+      (pick)=>{delete S.adminPicks[pick];render();}
+    ));
+  });
+
+  const brow=el("div",{style:{marginTop:"20px",display:"flex",gap:"10px",flexWrap:"wrap",alignItems:"center"}});
+  brow.appendChild(btn(S.saved?"✓ Saved!":"💾 Save to Scoreboard",S.saved?"btn-gr":"btn-or",saveActual));
+  brow.appendChild(btn("← Back","btn-dk",()=>{S.user=null;S.view="home";render();}));
+  brow.appendChild(el("span",{style:{fontSize:"11px",color:"var(--dim)"}},["Fetch auto-saves · Manual edits need Save"]));
+  content.appendChild(brow);
+  layout.appendChild(content);root.appendChild(layout);return root;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// CONFIRM MODAL
+// ═══════════════════════════════════════════════════════════════════════
+function renderModal(){
+  const mr=document.getElementById("modal-root");mr.innerHTML="";
+  if(!S.showConfirm||!S.fetchPreview)return;
+  const bg=el("div",{class:"modal-bg"});
+  const modal=el("div",{class:"modal"});
+  modal.appendChild(el("div",{style:{fontSize:"16px",fontWeight:"800",color:"var(--gold)",letterSpacing:"2px",marginBottom:"4px"}},["FETCH PREVIEW"]));
+  modal.appendChild(el("div",{style:{fontSize:"13px",color:"var(--dim)",marginBottom:"16px"}},[`Found ${S.fetchPreview.slots.length} change${S.fetchPreview.slots.length!==1?"s":""}:`]));
+  const list=el("div",{style:{display:"flex",flexDirection:"column",gap:"6px",marginBottom:"20px"}});
+  S.fetchPreview.slots.forEach(s=>{
+    const row=el("div",{style:{display:"flex",alignItems:"center",gap:"10px",padding:"8px 12px",borderRadius:"7px",background:s.isNew?"rgba(34,197,94,0.08)":"rgba(240,180,41,0.08)",border:`1px solid ${s.isNew?"rgba(34,197,94,0.25)":"rgba(240,180,41,0.25)"}`}});
+    row.appendChild(el("div",{style:{width:"28px",height:"28px",borderRadius:"50%",background:"linear-gradient(135deg,#1a243c,#243060)",border:"1px solid rgba(240,180,41,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"11px",fontWeight:"800",color:"var(--gold)",flexShrink:"0"}},[String(s.pick)]));
+    const d=DRAFT_ORDER.find(o=>o.pick===s.pick);
+    if(d){const img=imgEl(LOGO(d.ab));img.style.cssText="width:24px;height:24px;object-fit:contain";row.appendChild(img);}
+    const info=el("div",{style:{flex:"1"}});
+    info.appendChild(el("div",{style:{fontSize:"13px",fontWeight:"700"}},[s.name]));
+    if(!s.isNew)info.appendChild(el("div",{style:{fontSize:"11px",color:"var(--dim)"}},[`replaces: ${s.was}`]));
+    row.appendChild(info);
+    row.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"700",padding:"2px 8px",borderRadius:"8px",background:s.isNew?"rgba(34,197,94,0.2)":"rgba(240,180,41,0.2)",color:s.isNew?"var(--success)":"var(--gold)"}},[s.isNew?"NEW":"UPDATE"]));
+    list.appendChild(row);
+  });
+  modal.appendChild(list);
+  const btns=el("div",{style:{display:"flex",gap:"10px"}});
+  btns.appendChild(btn("✓ Apply All Changes","btn-gr",confirmFetch));
+  btns.appendChild(btn("Discard","btn-gy",()=>{S.showConfirm=false;S.fetchPreview=null;render();}));
+  modal.appendChild(btns);bg.appendChild(modal);mr.appendChild(bg);
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ACTIONS
+// ═══════════════════════════════════════════════════════════════════════
+function navigate(view){S.view=view;render();}
+
+function enterApp(){
+  if(!S.nameInput.trim())return;
+  S.user=S.nameInput.trim();S.myPicks=S.allPicks[S.user]||{};S.view="picks";render();
+}
+
+async function saveMyPicks(){
+  if(!S.user||S.locked)return;
+  if(S.fbOk){await fbSavePicks(S.user,S.myPicks);}
+  else{localStorage.setItem(`picks_${S.user}`,JSON.stringify(S.myPicks));}
+  S.saved=true;render();setTimeout(()=>{S.saved=false;render();},2200);
+}
+
+async function saveActual(){
+  if(S.fbOk){await fbSaveActual(S.adminPicks);}
+  else{localStorage.setItem("actual",JSON.stringify(S.adminPicks));}
+  S.actual={...S.adminPicks};S.saved=true;render();
+  setTimeout(()=>{S.saved=false;render();},2200);
+}
+
+async function doFetch(){
+  S.fetching=true;S.fetchLog=null;S.showConfirm=false;render();
+  try{
+    const fetched=await fetchLive();
+    const slots=[];const merged={...S.adminPicks};
+    for(const[k,v]of Object.entries(fetched)){
+      const n=parseInt(k);
+      if(!merged[n]||!merged[n].trim()){merged[n]=v;slots.push({pick:n,name:v,isNew:true});}
+      else if(merged[n].trim().toLowerCase()!==v.trim().toLowerCase()){slots.push({pick:n,name:v,was:merged[n],isNew:false});}
+    }
+    if(!slots.length){S.fetchLog={noChanges:true,ts:new Date().toLocaleTimeString()};}
+    else{S.fetchPreview={merged,slots};S.showConfirm=true;}
+  }catch(e){S.fetchLog={error:e.message,ts:new Date().toLocaleTimeString()};}
+  S.fetching=false;render();
+}
+
+async function confirmFetch(){
+  if(!S.fetchPreview)return;
+  S.adminPicks=S.fetchPreview.merged;
+  if(S.fbOk)await fbSaveActual(S.adminPicks);
+  else{localStorage.setItem("actual",JSON.stringify(S.adminPicks));}
+  S.actual={...S.adminPicks};
+  S.fetchLog={newCount:S.fetchPreview.slots.filter(s=>s.isNew).length,slots:S.fetchPreview.slots,ts:new Date().toLocaleTimeString()};
+  S.fetchPreview=null;S.showConfirm=false;render();
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════════
+function render(){
+  const app=document.getElementById("app");
+  app.innerHTML="";
+  let view;
+  if(S.view==="home"||!S.user)view=renderHome();
+  else if(S.view==="picks")view=renderPicks();
+  else if(S.view==="board")view=renderBoard();
+  else if(S.view==="admin")view=renderAdmin();
+  if(view)app.appendChild(view);
+  renderModal();
+}
+
+function renderNav(active){
+  const nav=el("div",{class:"nav"});
+  [["picks","My Picks"],["board","Leaderboard"]].forEach(([v,label])=>{
+    const b=el("button",{class:active===v?"active":"",onClick:()=>navigate(v)});
+    b.textContent=label;nav.appendChild(b);
+  });
+  const exitB=el("button",{onClick:()=>{S.user=null;S.view="home";render();}});
+  exitB.textContent="← Exit";nav.appendChild(exitB);
+  return nav;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════
+var unsubA, unsubP;
+
+function fbListenActual(){
+  if(unsubA)unsubA();
+  unsubA=_listen(_doc(_db,"actual","round1"),snap=>{
+    if(snap.exists()){S.actual=snap.data().actual||{};S.adminPicks={...S.actual};render();}
+  });
+}
+function fbListenPicks(){
+  if(unsubP)unsubP();
+  unsubP=_listen(_col(_db,"picks"),snap=>{
+    const all={};snap.forEach(d=>{all[d.id]=d.data().picks||{};});
+    S.allPicks=all;
+    if(S.user&&S.user!=="__admin__")S.myPicks=all[S.user]||S.myPicks;
+    render();
+  });
+}
+
+window.addEventListener("firebase-ready",async()=>{
+  S.fbOk=window._firestoreReady===true;
+  if(S.fbOk){
+    fbInit();
+    fbListenActual();
+    fbListenPicks();
+  }else{
+    // Fallback to localStorage
+    try{
+      const a=localStorage.getItem("actual");if(a)S.actual=JSON.parse(a);
+      const keys=Object.keys(localStorage).filter(k=>k.startsWith("picks_"));
+      keys.forEach(k=>{try{S.allPicks[k.slice(6)]=JSON.parse(localStorage.getItem(k));}catch{}});
+    }catch{}
+  }
+
+  document.getElementById("loading").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  render();
+
+  // Countdown tick
+  setInterval(()=>{
+    const was=S.locked;S.cd=countdown();S.locked=isLocked();
+    if(!was&&S.locked)render();
+    else{
+      document.querySelectorAll(".lock-banner").forEach(b=>{
+        const cdEl=b.querySelector("[data-cd]");if(cdEl)cdEl.textContent=S.cd||"";
+      });
+    }
+  },1000);
+});
+
+
+</script>
+</body>
+</html>
