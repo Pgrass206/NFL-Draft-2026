@@ -767,11 +767,12 @@ function renderHome(){
   // Scoring
   const sc=el("div",{class:"card-gold"});
   sc.appendChild(el("div",{style:{fontSize:"11px",color:"var(--gold)",letterSpacing:"2px",marginBottom:"12px"}},["SCORING"]));
-  const scr=el("div",{style:{display:"flex",gap:"12px"}});
-  [["✓ Exact","+100","var(--success)"],["~ 1-Off","+50","var(--gold)"],["~~ 2-Off","+20","#fb923c"],["◎ In Round","+10","var(--indigo)"]].forEach(([l,p,c])=>{
-    const col=el("div",{style:{flex:"1",textAlign:"center"}});
-    col.appendChild(el("div",{style:{fontSize:"26px",fontWeight:"900",color:c}},[p]));
-    col.appendChild(el("div",{style:{fontSize:"11px",color:"var(--dim)",marginTop:"2px"}},[l]));
+  const scr=el("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:"6px"}});
+  [["Exact","+100","Correct pick","#22c55e"],["1 Away","+50","1 slot off","#f0b429"],["2 Away","+20","2 slots off","#fb923c"],["In Round","+10","Right player","#818cf8"]].forEach(([l,p,sub,c])=>{
+    const col=el("div",{style:{textAlign:"center",background:"rgba(255,255,255,0.03)",borderRadius:"6px",padding:"8px 4px",border:"1px solid rgba(255,255,255,0.06)"}});
+    col.appendChild(el("div",{style:{fontSize:"20px",fontWeight:"900",color:c}},[p]));
+    col.appendChild(el("div",{style:{fontSize:"11px",fontWeight:"700",color:"#f1f5f9",marginTop:"2px"}},[l]));
+    col.appendChild(el("div",{style:{fontSize:"10px",color:"#9ca3af",marginTop:"1px"}},[sub]));
     scr.appendChild(col);
   });
   sc.appendChild(scr);wrap.appendChild(sc);
