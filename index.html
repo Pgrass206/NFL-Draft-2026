@@ -562,7 +562,7 @@ const ALL_PROSPECTS_R23=[
 const POS_COLORS={QB:"#ef4444",RB:"#22c55e",WR:"#3b82f6",TE:"#a855f7",OT:"#f59e0b",OG:"#f97316",C:"#d97706",Edge:"#14b8a6",DT:"#94a3b8",LB:"#64748b",CB:"#2563eb",S:"#7c3aed"};
 const POSITIONS=["ALL","QB","RB","WR","TE","OT","OG","C","Edge","DT","LB","CB","S"];
 const LOGO=a=>`https://a.espncdn.com/i/teamlogos/nfl/500/${a}.png`;
-const LOCK_TIMES={1:new Date("2026-04-23T20:00:00-04:00"),2:new Date("2026-04-24T19:00:00-04:00"),3:new Date("2026-04-24T19:00:00-04:00")};
+const LOCK_TIMES={1:new Date("2026-04-23T20:00:00-04:00"),2:new Date("2026-04-24T19:00:00-04:00"),3:new Date("2026-04-24T20:30:00-04:00")};
 const isRoundLocked=r=>new Date()>=LOCK_TIMES[r];
 function getCD(r){const d=LOCK_TIMES[r]-new Date();if(d<=0)return null;const h=Math.floor(d/3600000),m=Math.floor((d%3600000)/60000),s=Math.floor((d%60000)/1000);if(h>24){const dy=Math.floor(h/24);return`${dy}d ${h%24}h ${m}m`;}if(h>0)return`${h}h ${m}m ${s}s`;if(m>0)return`${m}m ${s}s`;return`${s}s`;}
 
@@ -703,7 +703,7 @@ async function fetchLive(){
     }catch(e){lastErr=e.message;}
   }
 
-  if(!data)throw new Error(`Cannot reach ESPN draft data. Enter picks manually below. (${lastErr})`);
+  if(!data)throw new Error(`Cannot reach ESPN. Use the Bulk Paste box below to enter picks manually — paste from ESPN.com or NFL.com (${lastErr})`);
 
   // Parse ESPN response - handle multiple possible structures
   let picksArr=[];
@@ -727,8 +727,9 @@ async function fetchLive(){
   }
 
   if(!picksArr.length){
-    console.log("ESPN response structure:",JSON.stringify(data).slice(0,500));
-    throw new Error(`Round ${round} picks not available yet — draft may not have started. (Response: ${JSON.stringify(data).slice(0,200)})`);
+    const preview=JSON.stringify(data).slice(0,300);
+    console.log("ESPN response:",preview);
+    throw new Error(`Round ${round} picks not available yet — Round 2 starts at 7 PM ET tonight. Check back once picks are announced! (Debug: ${preview})`);
   }
 
   const result={},tradeInfo={},teamInfo={};
