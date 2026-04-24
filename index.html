@@ -1333,78 +1333,57 @@ function renderAdmin(){
   content.appendChild(bp);
 
   // ── User Management ──
+  // ── User Management Toggle ──
   const umToggle=el("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"8px"}});
   umToggle.appendChild(el("div",{style:{fontSize:"10px",color:"var(--dim)",letterSpacing:"2px"}},["PICKS — type any player name or drag from sidebar"]));
-  const umBtn=el("button",{class:"btn btn-dk btn-sm",onClick:async()=>{
-    ST.showUserMgmt=!ST.showUserMgmt;
-    if(ST.showUserMgmt){
-      // Always do a fresh direct read from Firebase when opening user manager
-      if(ST.fbOk&&_getDocs){
-        try{
-          for(const r of[1,2,3]){
-            // R1 may be in old "picks" collection OR new "picks_r1"
-            const colName=r===1?"picks":`picks_r${r}`;
-            const snap=await _getDocs(_col(_db,colName));
-            const all={};snap.forEach(d=>{all[d.id]=d.data().picks||{};});
-            // Also try the new collection name for R1 and merge
-            if(r===1){
-              try{
-                const snap2=await _getDocs(_col(_db,"picks_r1"));
-                snap2.forEach(d=>{all[d.id]={...all[d.id],...(d.data().picks||{})};});
-              }catch{}
-            }
-            ST.allPicks[r]=all;
-          }
-        }catch(e){console.error("Load users:",e);}
-      }
-    }
-    render();
-  }});
+  const umBtn=el("button",{class:"btn btn-dk btn-sm",onClick:()=>{ST.showUserMgmt=!ST.showUserMgmt;render();}});
   umBtn.textContent=ST.showUserMgmt?"Hide User Manager":"👤 Manage Users";
-  umToggle.appendChild(umBtn);content.appendChild(umToggle);
+  umToggle.appendChild(umBtn);
+  content.appendChild(umToggle);
 
   if(ST.showUserMgmt){
     const um=el("div",{style:{background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:"8px",padding:"12px",marginBottom:"12px"}});
-    um.appendChild(el("div",{style:{fontSize:"11px",color:"var(--red)",fontWeight:"700",marginBottom:"4px"}},["⚠ USER MANAGEMENT — Delete removes picks from ALL rounds"]));
-    // Collect users from all rounds in ST.allPicks
+    um.appendChild(el("div",{style:{fontSize:"11px",color:"var(--red)",fontWeight:"700",marginBottom:"8px"}},["⚠ USER MANAGEMENT — Delete removes picks from ALL rounds"]));
+
     const allUsers=new Set();
     [1,2,3].forEach(r=>Object.keys(ST.allPicks[r]||{}).forEach(u=>allUsers.add(u)));
-    if(!allUsers.size){
-      // Firebase may still be loading - show a refresh button
-      const noUsers=el("div",{style:{color:"var(--dim)",fontSize:"11px",marginTop:"8px"}});
-      noUsers.textContent="No users loaded yet. ";
-      const refreshBtn=el("button",{class:"btn btn-dk btn-sm",style:{marginLeft:"6px"},onClick:()=>render()});
-      refreshBtn.textContent="🔄 Refresh";
-      noUsers.appendChild(refreshBtn);
-      if(ST.fbOk){
-        const reloadBtn=el("button",{class:"btn btn-in btn-sm",style:{marginLeft:"6px"},onClick:()=>reloadAllUsers()});
-        reloadBtn.textContent="⬇ Load from Firebase";
-        noUsers.appendChild(reloadBtn);
-      }
-      // Also try to show any users we know about from allPicks directly
-      const hint=el("div",{style:{fontSize:"10px",color:"var(--dim)",marginTop:"4px"}});
-      hint.textContent=`Picks loaded: R1=${Object.keys(ST.allPicks[1]||{}).length} R2=${Object.keys(ST.allPicks[2]||{}).length} R3=${Object.keys(ST.allPicks[3]||{}).length} users`;
-      um.appendChild(noUsers);
-      um.appendChild(hint);
+
+    // Debug line
+    const dbg=el("div",{style:{fontSize:"10px",color:"var(--dim)",fontFamily:"monospace",marginBottom:"8px",padding:"4px 6px",background:"rgba(0,0,0,0.3)",borderRadius:"4px"}});
+    dbg.textContent=`Firebase: ${ST.fbOk} | R1 picks loaded: ${Object.keys(ST.allPicks[1]||{}).length} users | R2: ${Object.keys(ST.allPicks[2]||{}).length} | R3: ${Object.keys(ST.allPicks[3]||{}).length}`;
+    um.appendChild(dbg);
+
+    if(allUsers.size===0){
+      um.appendChild(el("div",{style:{color:"var(--dim)",fontSize:"11px",marginBottom:"10px"}},
+        ["No users loaded yet — Firebase may still be syncing. Click Refresh or use manual delete below:"]));
+      um.appendChild(btn("🔄 Refresh","btn-or",()=>render()));
+      um.appendChild(el("div",{style:{fontSize:"10px",color:"var(--dim)",marginTop:"12px",marginBottom:"4px"}},
+        ["Manual delete — type exact username:"]));
+      const mr=el("div",{style:{display:"flex",gap:"6px",marginTop:"4px"}});
+      const mi=el("input",{type:"text",style:{flex:"1",padding:"5px 8px",background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:"4px",color:"var(--text)",fontSize:"12px",fontFamily:"inherit",outline:"none"}});
+      mi.placeholder="e.g. PGRASS or pgrass";
+      const md=el("button",{class:"btn btn-re btn-sm",onClick:()=>{const u=mi.value.trim();if(u)deleteUser(u);}});
+      md.textContent="🗑 Delete";
+      mr.appendChild(mi);mr.appendChild(md);um.appendChild(mr);
+    } else {
+      allUsers.forEach(user=>{
+        const row=el("div",{class:"user-row"});
+        const nd=el("div",{style:{flex:"1"}});
+        nd.appendChild(el("span",{style:{fontWeight:"700",fontSize:"13px"}},[user]));
+        nd.appendChild(el("div",{style:{fontSize:"10px",color:"var(--dim)",marginTop:"2px"}},[
+          `R1: ${Object.keys((ST.allPicks[1]||{})[user]||{}).length} · `+
+          `R2: ${Object.keys((ST.allPicks[2]||{})[user]||{}).length} · `+
+          `R3: ${Object.keys((ST.allPicks[3]||{})[user]||{}).length} picks`
+        ]));
+        row.appendChild(nd);
+        row.appendChild(btn("🗑 Delete","btn-re btn-sm",()=>deleteUser(user)));
+        um.appendChild(row);
+      });
     }
-    allUsers.forEach(user=>{
-      const row=el("div",{class:"user-row"});
-      const nameEl=el("div",{style:{flex:"1"}});
-      nameEl.appendChild(el("span",{style:{fontWeight:"700",fontSize:"13px"}},[user]));
-      nameEl.appendChild(el("div",{style:{fontSize:"10px",color:"var(--dim)",marginTop:"2px"}},[
-        `R1: ${Object.keys((ST.allPicks[1]||{})[user]||{}).length} picks · ` +
-        `R2: ${Object.keys((ST.allPicks[2]||{})[user]||{}).length} picks · ` +
-        `R3: ${Object.keys((ST.allPicks[3]||{})[user]||{}).length} picks`
-      ]));
-      row.appendChild(nameEl);
-      const delBtn=btn("🗑 Delete","btn-re btn-sm",()=>deleteUser(user));
-      row.appendChild(delBtn);
-      um.appendChild(row);
-    });
     content.appendChild(um);
   }
 
-  // ── Pick Grid ──
+    // ── Pick Grid ──
   const draftOrder=DRAFT_ORDERS[ST.round]||[];
   draftOrder.forEach(slot=>content.appendChild(buildPickRow(slot,ST.adminPicks,ST.actual[ST.round]||{},true)));
 
