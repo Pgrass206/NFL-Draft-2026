@@ -110,7 +110,7 @@ td{border-bottom:1px solid rgba(255,255,255,0.04)}
 
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import{getFirestore,doc,setDoc,deleteDoc,onSnapshot,collection}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import{getFirestore,doc,setDoc,deleteDoc,getDocs,onSnapshot,collection}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 const firebaseConfig={
   apiKey:"AIzaSyC6hM56vdceCUG8THy2I8tMv5VPC3kdt2Q",
   authDomain:"nfl-draft-2026-2defe.firebaseapp.com",
@@ -125,6 +125,7 @@ try{
   window._db=db;window._firestoreReady=true;
   window._fsDoc=doc;window._fsSet=setDoc;window._fsDelete=deleteDoc;
   window._fsListen=onSnapshot;window._fsCol=collection;
+  window._fsGetDocs=getDocs;
 }catch(e){window._firestoreReady=false;window._fbError=e.message;}
 window.dispatchEvent(new Event("firebase-ready"));
 </script>
@@ -583,7 +584,7 @@ const ST={
 
 // ─── FIREBASE ────────────────────────────────────────────────────────────────
 let _db,_doc,_set,_del,_listen,_col,unsubA={},unsubP={};
-function fbInit(){_db=window._db;_doc=window._fsDoc;_set=window._fsSet;_del=window._fsDelete;_listen=window._fsListen;_col=window._fsCol;}
+let _getDocs;function fbInit(){_db=window._db;_doc=window._fsDoc;_set=window._fsSet;_del=window._fsDelete;_listen=window._fsListen;_col=window._fsCol;_getDocs=window._fsGetDocs;}
 async function fbSavePicks(user,round,picks){try{await _set(_doc(_db,`picks_r${round}`,user),{picks});}catch(e){console.error(e);}}
 async function fbSaveActual(round,actual){try{await _set(_doc(_db,`actual_r${round}`,"result"),{actual});}catch(e){console.error(e);}}
 async function fbDeleteUser(user){
@@ -948,10 +949,27 @@ async function saveActual(){
 }
 async function deleteUser(userName){
   if(!confirm(`Delete ALL picks for "${userName}" across all rounds? This cannot be undone.`))return;
+  // Remove from local state
   [1,2,3].forEach(r=>{const ap={...(ST.allPicks[r]||{})};delete ap[userName];ST.allPicks[r]=ap;});
-  if(ST.fbOk)await fbDeleteUser(userName);
-  else{try{[1,2,3].forEach(r=>localStorage.removeItem(`picks_r${r}_${userName}`));}catch{}}
+  // Remove from Firebase / localStorage
+  if(ST.fbOk){
+    await fbDeleteUser(userName);
+  }else{
+    try{[1,2,3].forEach(r=>localStorage.removeItem(`picks_r${r}_${userName}`));}catch{}
+  }
   render();
+}
+
+// Force-reload all users from Firebase (useful when user manager shows empty)
+async function reloadAllUsers(){
+  if(!ST.fbOk)return;
+  try{
+    for(const r of [1,2,3]){
+      const snap=await window._fsGetDocs(_col(_db,`picks_r${r}`));
+      if(snap){const all={};snap.forEach(d=>{all[d.id]=d.data().picks||{};});ST.allPicks[r]=all;}
+    }
+    render();
+  }catch(e){console.error("reloadAllUsers:",e);}
 }
 async function doFetch(silent=false){
   ST.fetching=true;if(!silent){ST.fetchLog=null;ST.showConfirm=false;}render();
@@ -1311,17 +1329,41 @@ function renderAdmin(){
 
   if(ST.showUserMgmt){
     const um=el("div",{style:{background:"rgba(239,68,68,0.06)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:"8px",padding:"12px",marginBottom:"12px"}});
-    um.appendChild(el("div",{style:{fontSize:"11px",color:"var(--red)",fontWeight:"700",marginBottom:"8px"}},["⚠ USER MANAGEMENT — Delete removes picks from ALL rounds"]));
+    um.appendChild(el("div",{style:{fontSize:"11px",color:"var(--red)",fontWeight:"700",marginBottom:"4px"}},["⚠ USER MANAGEMENT — Delete removes picks from ALL rounds"]));
+    // Collect users from all rounds in ST.allPicks
     const allUsers=new Set();
     [1,2,3].forEach(r=>Object.keys(ST.allPicks[r]||{}).forEach(u=>allUsers.add(u)));
-    if(!allUsers.size){um.appendChild(el("div",{style:{color:"var(--dim)",fontSize:"11px"}},["No users found."]));}
+    if(!allUsers.size){
+      // Firebase may still be loading - show a refresh button
+      const noUsers=el("div",{style:{color:"var(--dim)",fontSize:"11px",marginTop:"8px"}});
+      noUsers.textContent="No users loaded yet. ";
+      const refreshBtn=el("button",{class:"btn btn-dk btn-sm",style:{marginLeft:"6px"},onClick:()=>render()});
+      refreshBtn.textContent="🔄 Refresh";
+      noUsers.appendChild(refreshBtn);
+      if(ST.fbOk){
+        const reloadBtn=el("button",{class:"btn btn-in btn-sm",style:{marginLeft:"6px"},onClick:()=>reloadAllUsers()});
+        reloadBtn.textContent="⬇ Load from Firebase";
+        noUsers.appendChild(reloadBtn);
+      }
+      // Also try to show any users we know about from allPicks directly
+      const hint=el("div",{style:{fontSize:"10px",color:"var(--dim)",marginTop:"4px"}});
+      hint.textContent=`Picks loaded: R1=${Object.keys(ST.allPicks[1]||{}).length} R2=${Object.keys(ST.allPicks[2]||{}).length} R3=${Object.keys(ST.allPicks[3]||{}).length} users`;
+      um.appendChild(noUsers);
+      um.appendChild(hint);
+    }
     allUsers.forEach(user=>{
       const row=el("div",{class:"user-row"});
-      row.appendChild(el("span",{style:{fontWeight:"700",fontSize:"13px"}},[user]));
-      const pickCounts=[1,2,3].map(r=>Object.values(ST.allPicks[r]||{})[user]?Object.keys((ST.allPicks[r]||{})[user]||{}).length:Object.keys((ST.allPicks[r]||{})[user]||{}).length);
-      row.appendChild(el("span",{style:{fontSize:"10px",color:"var(--dim)"}},[`R1: ${Object.keys((ST.allPicks[1]||{})[user]||{}).length} · R2: ${Object.keys((ST.allPicks[2]||{})[user]||{}).length} · R3: ${Object.keys((ST.allPicks[3]||{})[user]||{}).length} picks`]));
+      const nameEl=el("div",{style:{flex:"1"}});
+      nameEl.appendChild(el("span",{style:{fontWeight:"700",fontSize:"13px"}},[user]));
+      nameEl.appendChild(el("div",{style:{fontSize:"10px",color:"var(--dim)",marginTop:"2px"}},[
+        `R1: ${Object.keys((ST.allPicks[1]||{})[user]||{}).length} picks · ` +
+        `R2: ${Object.keys((ST.allPicks[2]||{})[user]||{}).length} picks · ` +
+        `R3: ${Object.keys((ST.allPicks[3]||{})[user]||{}).length} picks`
+      ]));
+      row.appendChild(nameEl);
       const delBtn=btn("🗑 Delete","btn-re btn-sm",()=>deleteUser(user));
-      row.appendChild(delBtn);um.appendChild(row);
+      row.appendChild(delBtn);
+      um.appendChild(row);
     });
     content.appendChild(um);
   }
