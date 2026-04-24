@@ -585,25 +585,32 @@ const ST={
 // ─── FIREBASE ────────────────────────────────────────────────────────────────
 let _db,_doc,_set,_del,_listen,_col,unsubA={},unsubP={};
 let _getDocs;function fbInit(){_db=window._db;_doc=window._fsDoc;_set=window._fsSet;_del=window._fsDelete;_listen=window._fsListen;_col=window._fsCol;_getDocs=window._fsGetDocs;}
-async function fbSavePicks(user,round,picks){try{await _set(_doc(_db,`picks_r${round}`,user),{picks});}catch(e){console.error(e);}}
-async function fbSaveActual(round,actual){try{await _set(_doc(_db,`actual_r${round}`,"result"),{actual});}catch(e){console.error(e);}}
+async function fbSavePicks(user,round,picks){const cn=round===1?'picks':`picks_r${round}`;try{await _set(_doc(_db,cn,user),{picks});}catch(e){console.error(e);}}
+async function fbSaveActual(round,actual){const cn=round===1?'actual':`actual_r${round}`;const dn=round===1?'round1':'result';try{await _set(_doc(_db,cn,dn),{actual});}catch(e){console.error(e);}}
 async function fbDeleteUser(user){
   try{
-    await _del(_doc(_db,"picks_r1",user));
-    await _del(_doc(_db,"picks_r2",user));
-    await _del(_doc(_db,"picks_r3",user));
+    // "picks" = old R1 collection, "picks_r1" = new R1 collection (try both)
+    await _del(_doc(_db,"picks",user)).catch(()=>{});
+    await _del(_doc(_db,"picks_r1",user)).catch(()=>{});
+    await _del(_doc(_db,"picks_r2",user)).catch(()=>{});
+    await _del(_doc(_db,"picks_r3",user)).catch(()=>{});
     console.log("Deleted user:",user);
   }catch(e){console.error(e);}
 }
 function fbListenActual(round){
   if(unsubA[round])unsubA[round]();
-  unsubA[round]=_listen(_doc(_db,`actual_r${round}`,"result"),snap=>{
+  // R1 actual may be in old "actual" collection
+  const colName=round===1?"actual":`actual_r${round}`;
+  const docName=round===1?"round1":"result";
+  unsubA[round]=_listen(_doc(_db,colName,docName),snap=>{
     if(snap.exists()){ST.actual[round]=snap.data().actual||{};if(round===ST.round){ST.adminPicks={...ST.actual[round]};}render();}
   });
 }
 function fbListenPicks(round){
   if(unsubP[round])unsubP[round]();
-  unsubP[round]=_listen(_col(_db,`picks_r${round}`),snap=>{
+  // For round 1, also listen to old "picks" collection (backward compat with original app)
+  const colName=round===1?"picks":`picks_r${round}`;
+  unsubP[round]=_listen(_col(_db,colName),snap=>{
     const all={};snap.forEach(d=>{all[d.id]=d.data().picks||{};});
     ST.allPicks[round]=all;
     if(ST.user&&ST.user!=="__admin__"&&round===ST.round)ST.myPicks=all[ST.user]||ST.myPicks;
@@ -962,11 +969,16 @@ async function deleteUser(userName){
 
 // Force-reload all users from Firebase (useful when user manager shows empty)
 async function reloadAllUsers(){
-  if(!ST.fbOk)return;
+  if(!ST.fbOk||!_getDocs)return;
   try{
     for(const r of [1,2,3]){
-      const snap=await window._fsGetDocs(_col(_db,`picks_r${r}`));
-      if(snap){const all={};snap.forEach(d=>{all[d.id]=d.data().picks||{};});ST.allPicks[r]=all;}
+      const colName=r===1?"picks":`picks_r${r}`;
+      const snap=await _getDocs(_col(_db,colName));
+      const all={};snap.forEach(d=>{all[d.id]=d.data().picks||{};});
+      if(r===1){
+        try{const s2=await _getDocs(_col(_db,"picks_r1"));s2.forEach(d=>{all[d.id]=d.data().picks||{};});}catch{}
+      }
+      ST.allPicks[r]=all;
     }
     render();
   }catch(e){console.error("reloadAllUsers:",e);}
@@ -1323,7 +1335,31 @@ function renderAdmin(){
   // ── User Management ──
   const umToggle=el("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"8px"}});
   umToggle.appendChild(el("div",{style:{fontSize:"10px",color:"var(--dim)",letterSpacing:"2px"}},["PICKS — type any player name or drag from sidebar"]));
-  const umBtn=el("button",{class:"btn btn-dk btn-sm",onClick:()=>{ST.showUserMgmt=!ST.showUserMgmt;render();}});
+  const umBtn=el("button",{class:"btn btn-dk btn-sm",onClick:async()=>{
+    ST.showUserMgmt=!ST.showUserMgmt;
+    if(ST.showUserMgmt){
+      // Always do a fresh direct read from Firebase when opening user manager
+      if(ST.fbOk&&_getDocs){
+        try{
+          for(const r of[1,2,3]){
+            // R1 may be in old "picks" collection OR new "picks_r1"
+            const colName=r===1?"picks":`picks_r${r}`;
+            const snap=await _getDocs(_col(_db,colName));
+            const all={};snap.forEach(d=>{all[d.id]=d.data().picks||{};});
+            // Also try the new collection name for R1 and merge
+            if(r===1){
+              try{
+                const snap2=await _getDocs(_col(_db,"picks_r1"));
+                snap2.forEach(d=>{all[d.id]={...all[d.id],...(d.data().picks||{})};});
+              }catch{}
+            }
+            ST.allPicks[r]=all;
+          }
+        }catch(e){console.error("Load users:",e);}
+      }
+    }
+    render();
+  }});
   umBtn.textContent=ST.showUserMgmt?"Hide User Manager":"👤 Manage Users";
   umToggle.appendChild(umBtn);content.appendChild(umToggle);
 
